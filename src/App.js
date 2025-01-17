@@ -43,19 +43,42 @@ function App() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = false;
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'en-US';
       
+      let finalTranscript = '';
+      
       recognitionInstance.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (activeCategory === 'voice') {
-          setLists(prevLists => ({
-            ...prevLists,
-            voice: [...prevLists.voice, { text: transcript, timestamp: new Date().toLocaleString() }]
-          }));
-        } else {
-          setInputValue(transcript);
+        let interimTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
         }
+        
+        if (activeCategory === 'voice') {
+          if (finalTranscript.trim()) {
+            setLists(prevLists => ({
+              ...prevLists,
+              voice: [...prevLists.voice, { 
+                text: finalTranscript.trim(), 
+                timestamp: new Date().toLocaleString() 
+              }]
+            }));
+            finalTranscript = ''; // Reset final transcript
+          }
+        } else {
+          setInputValue(finalTranscript + interimTranscript);
+        }
+      };
+
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
       };
 
       recognitionInstance.onend = () => {
@@ -63,6 +86,8 @@ function App() {
       };
 
       setRecognition(recognitionInstance);
+    } else {
+      alert('Speech recognition not supported in this browser');
     }
   }, [activeCategory]);
 
@@ -121,6 +146,9 @@ function App() {
         console.error('Speech recognition error:', error);
         alert('Voice input not supported or permission denied');
       }
+    } else if (recognition && isRecording) {
+      recognition.stop();
+      setIsRecording(false);
     }
   };
 
@@ -155,67 +183,11 @@ function App() {
             <div>
               <span style={{ fontWeight: '500' }}>{item.text}</span>
               <div style={{ 
-                fontSize: '12px', 
+                fontSize: '10px', 
                 color: 'rgba(255,255,255,0.6)',
                 marginTop: '5px'
               }}>
                 {item.timestamp}
-              </div>
-            </div>
-            <button 
-              onClick={() => handleRemoveItem(index)}
-              style={{
-                background: 'rgba(255,0,0,0.6)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                cursor: 'pointer'
-              }}
-            >
-              ✕
-            </button>
-          </li>
-        );
-      
-      case 'images':
-        return (
-          <li 
-            key={index} 
-            className="stripe-list-item"
-            style={{
-              margin: '10px 0',
-              padding: '15px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <img 
-                src={item.url} 
-                alt={item.name} 
-                style={{ 
-                  width: '50px', 
-                  height: '50px', 
-                  objectFit: 'cover', 
-                  marginRight: '15px',
-                  borderRadius: '8px'
-                }} 
-              />
-              <div>
-                <span style={{ fontWeight: '500' }}>{item.name}</span>
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: 'rgba(255,255,255,0.6)',
-                  marginTop: '5px'
-                }}>
-                  {item.timestamp}
-                </div>
               </div>
             </div>
             <button 
@@ -254,19 +226,34 @@ function App() {
                 : 'rgba(255,255,255,0.1)'
             }}
           >
-            <div onClick={() => toggleTodoStatus(index)} style={{ cursor: 'pointer' }}>
-              <span style={{ 
-                fontWeight: '500',
-                textDecoration: item.category === 'completed' ? 'line-through' : 'none'
-              }}>
-                {item.text}
-              </span>
+            <div 
+              onClick={() => toggleTodoStatus(index)} 
+              style={{ 
+                cursor: 'pointer', 
+                display: 'flex', 
+                flexDirection: 'column',
+                flex: 1
+              }}
+            >
               <div style={{ 
-                fontSize: '12px', 
-                color: 'rgba(255,255,255,0.6)',
-                marginTop: '5px'
+                display: 'flex', 
+                justifyContent: 'space-between',
+                alignItems: 'center'
               }}>
-                {item.timestamp}
+                <span style={{ 
+                  fontWeight: '500',
+                  textDecoration: item.category === 'completed' ? 'line-through' : 'none',
+                  flex: 1
+                }}>
+                  {item.text}
+                </span>
+                <span style={{ 
+                  fontSize: '10px', 
+                  color: 'rgba(255,255,255,0.6)',
+                  marginLeft: '10px'
+                }}>
+                  {item.timestamp}
+                </span>
               </div>
             </div>
             <button 
@@ -281,7 +268,8 @@ function App() {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                marginLeft: '10px'
               }}
             >
               ✕
@@ -383,6 +371,18 @@ function App() {
           letterSpacing: '1px'
         }}>
           {activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} List
+          <span style={{ 
+            fontSize: '14px', 
+            fontWeight: '400', 
+            color: 'rgba(255,255,255,0.7)',
+            marginLeft: '15px'
+          }}>
+            {currentDate.toLocaleDateString('en-US', { 
+              weekday: 'short', 
+              month: 'short', 
+              day: 'numeric' 
+            })}
+          </span>
         </h1>
 
         {/* Input Area */}
@@ -430,7 +430,7 @@ function App() {
                 backgroundColor: isRecording ? 'red' : undefined
               }}
             >
-              {isRecording ? 'Recording...' : 'Record'}
+              {isRecording ? 'Stop Recording' : 'Start Recording'}
             </button>
           )}
           
@@ -470,28 +470,6 @@ function App() {
               No items in {activeCategory} list
             </div>
           )}
-        </div>
-
-        {/* Calendar */}
-        <div style={{
-          marginTop: '20px',
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: '12px',
-          padding: '15px',
-          textAlign: 'center'
-        }}>
-          <div style={{ 
-            fontSize: '18px', 
-            fontWeight: '600',
-            marginBottom: '10px'
-          }}>
-            {currentDate.toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </div>
         </div>
       </div>
     </div>
