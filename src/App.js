@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
-// Icons (using SF Symbols style)
+// Icons with a more playful, tech-inspired look
 const ICONS = {
   home: '🏠',
   work: '💼',
@@ -25,7 +25,6 @@ function App() {
     };
   });
   const [inputValue, setInputValue] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const inputRef = useRef(null);
 
   // Save lists to local storage
@@ -56,20 +55,18 @@ function App() {
     <div style={{
       display: 'flex',
       height: '100vh',
-      background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-      color: '#f5f5f7',
-      fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
     }}>
       {/* Sidebar */}
       <div style={{
         width: '80px',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(20px)',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(10px)',
         padding: '20px 10px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        borderRight: '1px solid rgba(255,255,255,0.1)'
+        borderRight: '1px solid rgba(255,255,255,0.2)'
       }}>
         {Object.entries(ICONS).map(([category, icon]) => (
           <div 
@@ -79,7 +76,7 @@ function App() {
               fontSize: '30px',
               margin: '10px 0',
               cursor: 'pointer',
-              opacity: activeCategory === category ? 1 : 0.5,
+              opacity: activeCategory === category ? 1 : 0.6,
               transform: activeCategory === category ? 'scale(1.2)' : 'scale(1)',
               transition: 'all 0.3s ease'
             }}
@@ -98,11 +95,13 @@ function App() {
       }}>
         <h1 style={{
           fontSize: '36px',
-          fontWeight: '600',
+          fontWeight: '700',
           marginBottom: '30px',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          textTransform: 'uppercase',
+          letterSpacing: '1px'
         }}>
           {activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} List
         </h1>
@@ -120,7 +119,7 @@ function App() {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
             placeholder={`Add new ${activeCategory} item`}
-            className="apple-input"
+            className="stripe-input"
             style={{
               flex: 1,
               fontSize: '16px'
@@ -128,21 +127,18 @@ function App() {
           />
           <button 
             onClick={handleAddItem}
-            className="apple-button"
+            className="stripe-button"
             style={{
-              padding: '12px 20px',
-              fontSize: '16px'
+              padding: '12px 24px',
+              fontSize: '14px'
             }}
           >
-            Add
+            Add Item
           </button>
         </div>
 
         {/* List Area */}
-        <div style={{
-          backgroundColor: 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '15px',
+        <div className="stripe-card" style={{
           padding: '20px',
           maxHeight: '500px',
           overflowY: 'auto'
@@ -156,18 +152,21 @@ function App() {
               {lists[activeCategory].map((item, index) => (
                 <li 
                   key={index} 
+                  className="stripe-list-item"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.1)',
                     margin: '10px 0',
                     padding: '15px',
-                    borderRadius: '10px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'all 0.3s ease'
+                    alignItems: 'center'
                   }}
                 >
-                  <span>{item}</span>
+                  <span style={{ 
+                    fontWeight: '500',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {item}
+                  </span>
                   <button 
                     onClick={() => handleRemoveItem(index)}
                     style={{
@@ -191,8 +190,9 @@ function App() {
           ) : (
             <div style={{
               textAlign: 'center',
-              color: 'rgba(255,255,255,0.5)',
-              padding: '20px'
+              color: 'rgba(255,255,255,0.7)',
+              padding: '20px',
+              fontStyle: 'italic'
             }}>
               No items in {activeCategory} list
             </div>
