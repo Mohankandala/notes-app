@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
-// Icons (using Unicode for simplicity)
+// Icons (using SF Symbols style)
 const ICONS = {
   home: '🏠',
   work: '💼',
@@ -11,64 +11,27 @@ const ICONS = {
   recipes: '🍳'
 };
 
-// Keyboard Layout
-const KEYBOARD_ROWS = [
-  ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
-  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-  ['z', 'x', 'c', 'v', 'b', 'n', 'm']
-];
-
 function App() {
   const [activeCategory, setActiveCategory] = useState('home');
-  const [lists, setLists] = useState({
-    home: [],
-    work: [],
-    shopping: [],
-    personal: [],
-    travel: [],
-    recipes: []
+  const [lists, setLists] = useState(() => {
+    const savedLists = localStorage.getItem('notesAppLists');
+    return savedLists ? JSON.parse(savedLists) : {
+      home: [],
+      work: [],
+      shopping: [],
+      personal: [],
+      travel: [],
+      recipes: []
+    };
   });
   const [inputValue, setInputValue] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [showKeyboard, setShowKeyboard] = useState(false);
-  const [isUppercase, setIsUppercase] = useState(false);
   const inputRef = useRef(null);
 
-  // Voice Recognition Setup
-  const [recognition, setRecognition] = useState(null);
-
+  // Save lists to local storage
   useEffect(() => {
-    // Check if browser supports speech recognition
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = false;
-      recognitionInstance.lang = 'en-US';
-      
-      recognitionInstance.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputValue(prevValue => prevValue + ' ' + transcript);
-      };
-
-      recognitionInstance.onend = () => {
-        setIsRecording(false);
-      };
-
-      setRecognition(recognitionInstance);
-    }
-  }, []);
-
-  const handleStartRecording = () => {
-    if (recognition && !isRecording) {
-      try {
-        recognition.start();
-        setIsRecording(true);
-      } catch (error) {
-        console.error('Speech recognition error:', error);
-        alert('Voice input not supported or permission denied');
-      }
-    }
-  };
+    localStorage.setItem('notesAppLists', JSON.stringify(lists));
+  }, [lists]);
 
   const handleAddItem = () => {
     if (inputValue.trim()) {
@@ -77,7 +40,6 @@ function App() {
         [activeCategory]: [...prevLists[activeCategory], inputValue.trim()]
       }));
       setInputValue('');
-      setShowKeyboard(false);
     }
   };
 
@@ -90,34 +52,24 @@ function App() {
     }));
   };
 
-  const handleKeyboardInput = (key) => {
-    if (key === 'backspace') {
-      setInputValue(prev => prev.slice(0, -1));
-    } else if (key === 'space') {
-      setInputValue(prev => prev + ' ');
-    } else {
-      const charToAdd = isUppercase ? key.toUpperCase() : key;
-      setInputValue(prev => prev + charToAdd);
-    }
-    inputRef.current.focus();
-  };
-
   return (
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: '#111',
-      color: '#fff',
-      position: 'relative'
+      background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
+      color: '#f5f5f7',
+      fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
     }}>
       {/* Sidebar */}
       <div style={{
         width: '80px',
-        backgroundColor: 'rgba(144, 238, 144, 0.1)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        backdropFilter: 'blur(20px)',
         padding: '20px 10px',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center'
+        alignItems: 'center',
+        borderRight: '1px solid rgba(255,255,255,0.1)'
       }}>
         {Object.entries(ICONS).map(([category, icon]) => (
           <div 
@@ -128,7 +80,8 @@ function App() {
               margin: '10px 0',
               cursor: 'pointer',
               opacity: activeCategory === category ? 1 : 0.5,
-              transform: activeCategory === category ? 'scale(1.2)' : 'scale(1)'
+              transform: activeCategory === category ? 'scale(1.2)' : 'scale(1)',
+              transition: 'all 0.3s ease'
             }}
           >
             {icon}
@@ -144,161 +97,57 @@ function App() {
         flexDirection: 'column'
       }}>
         <h1 style={{
-          fontSize: '28px',
-          marginBottom: '20px',
+          fontSize: '36px',
+          fontWeight: '600',
+          marginBottom: '30px',
           display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          {ICONS[activeCategory]} {activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} List
+          {activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} List
         </h1>
 
         {/* Input Area */}
         <div style={{
           display: 'flex',
-          marginBottom: '20px'
+          marginBottom: '30px',
+          gap: '15px'
         }}>
           <input 
             ref={inputRef}
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onFocus={() => setShowKeyboard(true)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
             placeholder={`Add new ${activeCategory} item`}
+            className="apple-input"
             style={{
               flex: 1,
-              borderRadius: '100px',
-              padding: '10px 20px',
-              border: '1px solid #ccc',
-              backgroundColor: '#111',
-              color: '#fff',
-              marginRight: '10px'
+              fontSize: '16px'
             }}
           />
           <button 
-            onClick={handleStartRecording}
-            style={{
-              backgroundColor: isRecording ? 'red' : 'lightgreen',
-              border: 'none',
-              borderRadius: '50%',
-              width: '50px',
-              height: '50px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: '10px',
-              cursor: 'pointer'
-            }}
-          >
-            🎤
-          </button>
-          <button 
             onClick={handleAddItem}
+            className="apple-button"
             style={{
-              backgroundColor: 'lightgreen',
-              border: 'none',
-              borderRadius: '50px',
-              padding: '10px 20px',
-              color: '#111',
-              fontWeight: 'bold',
-              cursor: 'pointer'
+              padding: '12px 20px',
+              fontSize: '16px'
             }}
           >
             Add
           </button>
         </div>
 
-        {/* On-Screen Keyboard */}
-        {showKeyboard && (
-          <div style={{
-            backgroundColor: 'rgba(144, 238, 144, 0.1)',
-            borderRadius: '10px',
-            padding: '15px',
-            marginBottom: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-          }}>
-            {KEYBOARD_ROWS.map((row, rowIndex) => (
-              <div 
-                key={rowIndex} 
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginBottom: '10px'
-                }}
-              >
-                {rowIndex === 2 && (
-                  <button 
-                    onClick={() => setIsUppercase(!isUppercase)}
-                    style={{
-                      margin: '0 5px',
-                      padding: '10px',
-                      backgroundColor: isUppercase ? 'lightgreen' : 'rgba(144, 238, 144, 0.3)',
-                      border: 'none',
-                      borderRadius: '5px'
-                    }}
-                  >
-                    ⇧
-                  </button>
-                )}
-                {row.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleKeyboardInput(key)}
-                    style={{
-                      margin: '0 5px',
-                      padding: '10px',
-                      backgroundColor: 'rgba(144, 238, 144, 0.3)',
-                      border: 'none',
-                      borderRadius: '5px',
-                      color: '#fff'
-                    }}
-                  >
-                    {isUppercase ? key.toUpperCase() : key}
-                  </button>
-                ))}
-                {rowIndex === 2 && (
-                  <button 
-                    onClick={() => handleKeyboardInput('backspace')}
-                    style={{
-                      margin: '0 5px',
-                      padding: '10px',
-                      backgroundColor: 'rgba(255, 0, 0, 0.3)',
-                      border: 'none',
-                      borderRadius: '5px'
-                    }}
-                  >
-                    ⌫
-                  </button>
-                )}
-              </div>
-            ))}
-            <button 
-              onClick={() => handleKeyboardInput('space')}
-              style={{
-                width: '50%',
-                padding: '10px',
-                backgroundColor: 'rgba(144, 238, 144, 0.3)',
-                border: 'none',
-                borderRadius: '5px',
-                marginTop: '10px'
-              }}
-            >
-              Space
-            </button>
-          </div>
-        )}
-
         {/* List Area */}
-        {lists[activeCategory].length > 0 ? (
-          <div style={{
-            backgroundColor: 'rgba(144, 238, 144, 0.2)',
-            borderRadius: '10px',
-            padding: '15px',
-            maxHeight: '500px',
-            overflowY: 'auto'
-          }}>
+        <div style={{
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '15px',
+          padding: '20px',
+          maxHeight: '500px',
+          overflowY: 'auto'
+        }}>
+          {lists[activeCategory].length > 0 ? (
             <ul style={{
               listStyleType: 'none',
               padding: 0,
@@ -308,25 +157,26 @@ function App() {
                 <li 
                   key={index} 
                   style={{
-                    backgroundColor: 'rgba(144, 238, 144, 0.3)',
-                    margin: '5px 0',
-                    padding: '10px',
-                    borderRadius: '5px',
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    margin: '10px 0',
+                    padding: '15px',
+                    borderRadius: '10px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    transition: 'all 0.3s ease'
                   }}
                 >
-                  {item}
+                  <span>{item}</span>
                   <button 
                     onClick={() => handleRemoveItem(index)}
                     style={{
-                      backgroundColor: 'rgba(255,0,0,0.6)',
+                      background: 'rgba(255,0,0,0.6)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '50%',
-                      width: '25px',
-                      height: '25px',
+                      width: '30px',
+                      height: '30px',
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -338,16 +188,16 @@ function App() {
                 </li>
               ))}
             </ul>
-          </div>
-        ) : (
-          <div style={{
-            textAlign: 'center',
-            color: 'rgba(255,255,255,0.5)',
-            padding: '20px'
-          }}>
-            No items in {activeCategory} list
-          </div>
-        )}
+          ) : (
+            <div style={{
+              textAlign: 'center',
+              color: 'rgba(255,255,255,0.5)',
+              padding: '20px'
+            }}>
+              No items in {activeCategory} list
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
